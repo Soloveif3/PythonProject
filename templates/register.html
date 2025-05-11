@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    body {
+        background: url('https://example.com/your-background-image.jpg') no-repeat center center fixed;
+        background-size: cover;
+        min-height: 100vh;
+    }
+
+    .registration-container {
+        background-color: rgba(255, 255, 255, 0.9);
+        border-radius: 15px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        max-width: 600px;
+        margin: 50px auto;
+    }
+
+    .registration-header {
+        text-align: center;
+        margin-bottom: 25px;
+        color: #343a40;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .progress {
+        height: 8px;
+        margin-top: 5px;
+        margin-bottom: 15px;
+        background-color: #e9ecef;
+    }
+
+    .progress-bar {
+        transition: width 0.5s ease;
+    }
+
+    .password-feedback {
+        font-size: 0.85rem;
+        margin-top: -10px;
+        margin-bottom: 10px;
+    }
+
+    .btn-register {
+        width: 100%;
+        padding: 12px;
+        font-weight: 600;
+        background-color: #4285f4;
+        border: none;
+        transition: all 0.3s;
+    }
+
+    .btn-register:hover {
+        background-color: #3367d6;
+        transform: translateY(-2px);
+    }
+
+    @media (max-width: 768px) {
+        .registration-container {
+            margin: 30px 15px;
+            padding: 20px;
+        }
+    }
+</style>
+
+<div class="registration-container">
+    <div class="registration-header">
+        <h1>Регистрация</h1>
+        <p class="text-muted">Создайте новый аккаунт</p>
+    </div>
+
+    <form action="" method="post">
+        {{ form.hidden_tag() }}
+
+        <div class="form-group">
+            {{ form.email.label(class="form-label") }}
+            {{ form.email(class="form-control form-control-lg", type="email", placeholder="Введите ваш email") }}
+            {% for error in form.email.errors %}
+                <div class="alert alert-danger mt-2" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-group">
+            {{ form.password.label(class="form-label") }}
+            {{ form.password(class="form-control form-control-lg", type="password", id="password",
+                            oninput="checkPasswordStrength()", placeholder="Создайте пароль") }}
+            <div class="progress">
+                <div id="password-strength-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+            <div id="password-strength-text" class="password-feedback"></div>
+            {% for error in form.password.errors %}
+                <div class="alert alert-danger mt-2" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-group">
+            {{ form.password_again.label(class="form-label") }}
+            {{ form.password_again(class="form-control form-control-lg", type="password",
+                                 placeholder="Повторите пароль") }}
+            {% for error in form.password_again.errors %}
+                <div class="alert alert-danger mt-2" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-group">
+            {{ form.name.label(class="form-label") }}
+            {{ form.name(class="form-control form-control-lg", placeholder="Ваше имя") }}
+            {% for error in form.name.errors %}
+                <div class="alert alert-danger mt-2" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-group mt-4">
+            {{ form.submit(type="submit", class="btn btn-primary btn-register") }}
+        </div>
+
+        {% if message %}
+        <div class="alert alert-info mt-3" role="alert">
+            {{ message }}
+        </div>
+        {% endif %}
+
+        <div class="text-center mt-3">
+            <p class="text-muted">Уже есть аккаунт? <a href="{{ url_for('login') }}">Войти</a></p>
+        </div>
+    </form>
+</div>
+{% endblock %}

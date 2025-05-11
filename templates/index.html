@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block content %}
+<head>
+    <style>/* Основные стили */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Формы */
+form {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f5f5f5;
+    border-radius: 5px;
+}
+
+/* Список файлов */
+.file-list {
+    margin-top: 20px;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.file-item i {
+    margin-right: 10px;
+    font-size: 20px;
+}
+
+.file-actions {
+    margin-left: auto;
+}
+
+/* Кнопки */
+.btn {
+    padding: 8px 15px;
+    background: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn.danger {
+    background: #ea4335;
+}</style>
+</head>
+<div class="container">
+    <!-- Форма поиска -->
+    <form method="GET" action="{{ url_for('index') }}">
+        {{ search_form.hidden_tag() }}
+        <div class="search-box">
+            {{ search_form.query(placeholder="Поиск файлов...") }}
+            {{ search_form.submit(class="btn") }}
+        </div>
+    </form>
+
+    <!-- Формы действий -->
+    <div class="action-buttons">
+        <button id="showUploadForm" class="btn">Загрузить файл</button>
+        <button id="showFolderForm" class="btn">Создать папку</button>
+    </div>
+
+    <!-- Форма загрузки файла (изначально скрыта) -->
+    <form id="uploadForm" method="POST" enctype="multipart/form-data" style="display: none;">
+        {{ upload_form.hidden_tag() }}
+        {{ upload_form.file }}
+        {{ upload_form.submit(class="btn") }}
+    </form>
+
+    <!-- Форма создания папки (изначально скрыта) -->
+    <form id="folderForm" method="POST" style="display: none;">
+        {{ folder_form.hidden_tag() }}
+        {{ folder_form.folder_name(placeholder="Введите название папки") }}
+        {{ folder_form.submit(class="btn") }}
+    </form>
+
+    <!-- Список файлов -->
+    <div class="file-list">
+        {% for file in files %}
+        <div class="file-item">
+            <i class="fas fa-file-{{ file.type }}"></i>
+            <span>{{ file.name }}</span>
+            <span>{{ file.size|filesizeformat }}</span>
+            <div class="file-actions">
+                <a href="{{ url_for('download', filename=file.name) }}" class="btn">Скачать</a>
+                <form method="POST" action="{{ url_for('delete', filename=file.name) }}" style="display: inline;">
+                    <button type="submit" class="btn danger">Удалить</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    // Показать/скрыть формы
+    document.getElementById('showUploadForm').addEventListener('click', function() {
+        document.getElementById('uploadForm').style.display = 'block';
+        document.getElementById('folderForm').style.display = 'none';
+    });
+    
+    document.getElementById('showFolderForm').addEventListener('click', function() {
+        document.getElementById('folderForm').style.display = 'block';
+        document.getElementById('uploadForm').style.display = 'none';
+    });
+</script>
+{% endblock %}
