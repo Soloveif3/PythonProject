@@ -1,115 +1,657 @@
 {% extends "base.html" %}
 
 {% block content %}
-<head>
-    <style>/* Основные стили */
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-}
 
-/* Формы */
-form {
-    margin-bottom: 20px;
-    padding: 15px;
-    background: #f5f5f5;
-    border-radius: 5px;
-}
+<style>
+    :root {
+        --primary-color: #4361ee;
+        --primary-hover: #3a56d4;
+        --secondary-color: #f8f9fa;
+        --text-color: #2b2d42;
+        --light-gray: #edf2f4;
+        --border-radius: 12px;
+        --box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        --transition: all 0.3s ease;
+    }
 
-/* Список файлов */
-.file-list {
-    margin-top: 20px;
-}
+    body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--text-color);
+    }
 
-.file-item {
-    display: flex;
-    align-items: center;
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-}
+    .file-manager-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 30px 20px;
+    }
 
-.file-item i {
-    margin-right: 10px;
-    font-size: 20px;
-}
+    /* Header styles */
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
 
-.file-actions {
-    margin-left: auto;
-}
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
 
-/* Кнопки */
-.btn {
-    padding: 8px 15px;
-    background: #4285f4;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
+    .user-name {
+        font-weight: 600;
+        font-size: 1.2rem;
+    }
 
-.btn.danger {
-    background: #ea4335;
-}</style>
-</head>
-<div class="container">
-    <!-- Форма поиска -->
-    <form method="GET" action="{{ url_for('index') }}">
-        {{ search_form.hidden_tag() }}
-        <div class="search-box">
-            {{ search_form.query(placeholder="Поиск файлов...") }}
-            {{ search_form.submit(class="btn") }}
+    .logout-btn {
+        color: #e63946;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: var(--transition);
+    }
+
+    .logout-btn:hover {
+        text-decoration: underline;
+    }
+
+    /* Search form */
+    .search-form {
+        flex: 1;
+        max-width: 500px;
+    }
+
+    .search-input-group {
+        display: flex;
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        overflow: hidden;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 12px 15px;
+        border: none;
+        font-size: 1rem;
+        outline: none;
+    }
+
+    .search-button {
+        background: var(--primary-color);
+        border: none;
+        padding: 0 20px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        transition: var(--transition);
+    }
+
+    .search-button:hover {
+        background: var(--primary-hover);
+    }
+
+    /* Main content */
+    .main-content {
+        display: grid;
+        grid-template-columns: 350px 1fr;
+        gap: 25px;
+    }
+
+    /* Forms section */
+    .forms-section {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .upload-card, .folder-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 25px;
+        transition: var(--transition);
+    }
+
+    .upload-card:hover, .folder-card:hover {
+        box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-title {
+        margin-top: 0;
+        margin-bottom: 20px;
+        color: var(--text-color);
+        font-size: 1.3rem;
+    }
+
+    /* Form elements */
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+
+    /* File upload */
+    .file-upload-wrapper {
+        position: relative;
+    }
+
+    .file-upload-input {
+        position: absolute;
+        left: 0;
+        top: 0;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+    }
+
+    .file-upload-label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 25px;
+        border: 2px dashed #ddd;
+        border-radius: var(--border-radius);
+        background: var(--light-gray);
+        transition: var(--transition);
+        cursor: pointer;
+        text-align: center;
+    }
+
+    .file-upload-label:hover {
+        border-color: var(--primary-color);
+        background: rgba(67, 97, 238, 0.05);
+    }
+
+    .file-upload-label svg {
+        margin-bottom: 10px;
+        color: var(--primary-color);
+    }
+
+    #file-name {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+
+    /* Select input */
+    .select-input {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        border-radius: var(--border-radius);
+        font-size: 1rem;
+        transition: var(--transition);
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 16px;
+    }
+
+    .select-input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        outline: none;
+    }
+
+    /* Text input */
+    .text-input {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        border-radius: var(--border-radius);
+        font-size: 1rem;
+        transition: var(--transition);
+    }
+
+    .text-input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        outline: none;
+    }
+
+    /* Buttons */
+    .submit-button {
+        width: 100%;
+        padding: 14px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: var(--border-radius);
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .submit-button:hover {
+        background: var(--primary-hover);
+        transform: translateY(-2px);
+    }
+
+    /* Files section */
+    .files-section {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 25px;
+    }
+
+    .section-title {
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 1.3rem;
+    }
+
+    /* Files grid */
+    .files-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+    }
+
+    .file-item {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #eee;
+        border-radius: var(--border-radius);
+        padding: 20px;
+        transition: var(--transition);
+    }
+
+    .file-item:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 5px 15px rgba(67, 97, 238, 0.1);
+        transform: translateY(-3px);
+    }
+
+    .file-icon {
+        text-align: center;
+        margin-bottom: 15px;
+    }
+
+    .file-icon svg {
+        width: 48px;
+        height: 48px;
+    }
+
+    .file-icon-folder {
+        color: #4361ee;
+    }
+
+    .file-icon-img {
+        color: #4cc9f0;
+    }
+
+    .file-icon-pdf {
+        color: #ef233c;
+    }
+
+    .file-icon-default {
+        color: #6c757d;
+    }
+
+    .file-info {
+        flex: 1;
+        text-align: center;
+    }
+
+    .file-name {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 5px;
+        word-break: break-word;
+    }
+
+    .file-size {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+
+    .file-actions {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .file-btn {
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: var(--transition);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .download-btn {
+        background: rgba(67, 97, 238, 0.1);
+        color: var(--primary-color);
+        border: 1px solid rgba(67, 97, 238, 0.2);
+    }
+
+    .download-btn:hover {
+        background: rgba(67, 97, 238, 0.2);
+    }
+
+    .delete-btn {
+        background: rgba(239, 35, 60, 0.1);
+        color: #ef233c;
+        border: 1px solid rgba(239, 35, 60, 0.2);
+    }
+
+    .delete-btn:hover {
+        background: rgba(239, 35, 60, 0.2);
+    }
+
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #6c757d;
+    }
+
+    .empty-state svg {
+        margin-bottom: 15px;
+        opacity: 0.6;
+    }
+
+    .empty-state p {
+        margin: 0;
+        font-size: 1.1rem;
+    }
+
+    /* Flash messages */
+    .flash-messages {
+        margin-bottom: 25px;
+    }
+
+    .flash-message {
+        padding: 15px;
+        border-radius: var(--border-radius);
+        margin-bottom: 15px;
+        font-size: 0.95rem;
+    }
+
+    .flash-message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .flash-message.danger {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .flash-message.info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+
+    /* Breadcrumbs */
+    .breadcrumbs {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .breadcrumb-item {
+        display: flex;
+        align-items: center;
+    }
+
+    .breadcrumb-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-size: 0.95rem;
+    }
+
+    .breadcrumb-item a:hover {
+        text-decoration: underline;
+    }
+
+    .breadcrumb-separator {
+        margin: 0 8px;
+        color: #6c757d;
+        font-size: 0.8rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+        .main-content {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .header-section {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .search-form {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .files-grid {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+    }
+</style>
+<div class="file-manager-container">
+    <div class="header-section">
+        <div class="user-info">
+            <span class="user-name">{{ current_user.name }}</span>
+            <a href="{{ url_for('logout') }}" class="logout-btn">Выйти</a>
         </div>
-    </form>
 
-    <!-- Формы действий -->
-    <div class="action-buttons">
-        <button id="showUploadForm" class="btn">Загрузить файл</button>
-        <button id="showFolderForm" class="btn">Создать папку</button>
+        <div class="breadcrumbs">
+            <a href="{{ url_for('index') }}">Корневая папка</a>
+            {% for part in path_parts %}
+                / <a href="{{ url_for('browse', path=part.path) }}">{{ part.name }}</a>
+            {% endfor %}
+        </div>
     </div>
 
-    <!-- Форма загрузки файла (изначально скрыта) -->
-    <form id="uploadForm" method="POST" enctype="multipart/form-data" style="display: none;">
-        {{ upload_form.hidden_tag() }}
-        {{ upload_form.file }}
-        {{ upload_form.submit(class="btn") }}
-    </form>
+    <div class="main-content">
+        <div class="forms-section">
+            <div class="upload-card">
+                <h3 class="card-title">Загрузить файл</h3>
+                <form class="upload-form" action="{{ url_for('upload') }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="current_path" value="{{ current_path }}">
+                    {{ upload_form.hidden_tag() }}
+                    <div class="form-group">
+                        <div class="file-upload-wrapper">
+                            {{ upload_form.file(class="file-upload-input", id="file-upload") }}
+                            <label for="file-upload" class="file-upload-label">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <span id="file-name">Выберите файл</span>
+                            </label>
+                        </div>
+                        {% for error in upload_form.file.errors %}
+                            <div class="error-message">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <button type="submit" class="submit-button">Загрузить</button>
+                </form>
+            </div>
 
-    <!-- Форма создания папки (изначально скрыта) -->
-    <form id="folderForm" method="POST" style="display: none;">
-        {{ folder_form.hidden_tag() }}
-        {{ folder_form.folder_name(placeholder="Введите название папки") }}
-        {{ folder_form.submit(class="btn") }}
-    </form>
-
-    <!-- Список файлов -->
-    <div class="file-list">
-        {% for file in files %}
-        <div class="file-item">
-            <i class="fas fa-file-{{ file.type }}"></i>
-            <span>{{ file.name }}</span>
-            <span>{{ file.size|filesizeformat }}</span>
-            <div class="file-actions">
-                <a href="{{ url_for('download', filename=file.name) }}" class="btn">Скачать</a>
-                <form method="POST" action="{{ url_for('delete', filename=file.name) }}" style="display: inline;">
-                    <button type="submit" class="btn danger">Удалить</button>
+            <div class="folder-card">
+                <h3 class="card-title">Создать папку</h3>
+                <form class="folder-form" action="{{ url_for('create_folder') }}" method="POST">
+                    <input type="hidden" name="current_path" value="{{ current_path }}">
+                    {{ folder_form.hidden_tag() }}
+                    <div class="form-group">
+                        {{ folder_form.folder_name(class="text-input", placeholder="Введите название папки") }}
+                        {% for error in folder_form.folder_name.errors %}
+                            <div class="error-message">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <button type="submit" class="submit-button">Создать</button>
                 </form>
             </div>
         </div>
-        {% endfor %}
+
+        <div class="files-section">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash-message {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <h3 class="section-title">
+                {% if current_path %}
+                    Папка: {{ current_path.split('/')[-1] }}
+                {% else %}
+                    Корневая папка
+                {% endif %}
+            </h3>
+
+            {% if folders or files %}
+                <div class="files-grid">
+                    {% for folder in folders %}
+                        <div class="file-item folder-item">
+                            <a href="{{ url_for('browse', path=folder.path) }}" class="folder-link">
+                                <div class="file-icon">
+                                    <svg class="file-icon-folder" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 2h5a2 2 0 0 1 2 2z"></path>
+                                    </svg>
+                                </div>
+                                <div class="file-info">
+                                    <span class="file-name">{{ folder.name }}</span>
+                                    <span class="file-type">Папка</span>
+                                </div>
+                            </a>
+                            <div class="file-actions">
+                                <form action="{{ url_for('delete_item', path=folder.path) }}" method="POST">
+                                    <input type="hidden" name="current_path" value="{{ current_path }}">
+                                    <button type="submit" class="delete-btn" title="Удалить папку">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    {% for file in files %}
+                        <div class="file-item">
+                            <div class="file-icon">
+                                {% if file.type in ['jpg', 'jpeg', 'png', 'gif', 'webp'] %}
+                                    <svg class="file-icon-img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                        <polyline points="21 15 16 10 5 21"></polyline>
+                                    </svg>
+                                {% elif file.type in ['pdf'] %}
+                                    <svg class="file-icon-pdf" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                        <path d="M10 11v5"></path>
+                                        <path d="M14 11v3a2 2 0 0 0 4 0v-3"></path>
+                                    </svg>
+                                {% else %}
+                                    <svg class="file-icon-default" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                        <polyline points="13 2 13 9 20 9"></polyline>
+                                    </svg>
+                                {% endif %}
+                            </div>
+                            <div class="file-info">
+                                <span class="file-name">{{ file.name }}</span>
+                                <span class="file-size">{{ file.size|filesizeformat }}</span>
+                                <span class="file-type">{{ file.type }}</span>
+                            </div>
+                            <div class="file-actions">
+                                <a href="{{ url_for('download', path=file.path) }}" class="download-btn" title="Скачать">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                </a>
+                                <form action="{{ url_for('delete_item', path=file.path) }}" method="POST">
+                                    <input type="hidden" name="current_path" value="{{ current_path }}">
+                                    <button type="submit" class="delete-btn" title="Удалить">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 2h5a2 2 0 0 1 2 2z"></path>
+                        <line x1="12" y1="11" x2="12" y2="17"></line>
+                        <line x1="9" y1="14" x2="15" y2="14"></line>
+                    </svg>
+                    <p>Папка пуста</p>
+                </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 
 <script>
-    // Показать/скрыть формы
-    document.getElementById('showUploadForm').addEventListener('click', function() {
-        document.getElementById('uploadForm').style.display = 'block';
-        document.getElementById('folderForm').style.display = 'none';
+    // Update file name when selected
+    document.getElementById('file-upload').addEventListener('change', function(e) {
+        const fileName = e.target.files[0] ? e.target.files[0].name : 'Выберите файл';
+        document.getElementById('file-name').textContent = fileName;
     });
-    
-    document.getElementById('showFolderForm').addEventListener('click', function() {
-        document.getElementById('folderForm').style.display = 'block';
-        document.getElementById('uploadForm').style.display = 'none';
+
+    // Add current path to all forms
+    document.querySelectorAll('form').forEach(form => {
+        const currentPath = "{{ current_path }}";
+        if (currentPath && !form.querySelector('input[name="current_path"]')) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'current_path';
+            hiddenInput.value = currentPath;
+            form.appendChild(hiddenInput);
+        }
+    });
+
+    // Confirm deletion
+    document.querySelectorAll('.delete-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            if (!confirm('Вы уверены, что хотите удалить этот элемент?')) {
+                e.preventDefault();
+            }
+        });
     });
 </script>
 {% endblock %}

@@ -39,76 +39,190 @@ def load_user(user_id):
     return db_sess.query(User).get(user_id)
 
 
-@app.route('/', methods=['GET', 'POST'])
+def get_user_folders(user_folder, current_path=''):
+    """Рекурсивно получает все папки пользователя"""
+    full_path = os.path.join(user_folder, current_path)
+    folders = []
+
+    if os.path.exists(full_path):
+        for item in os.listdir(full_path):
+            item_path = os.path.join(full_path, item)
+            if os.path.isdir(item_path):
+                rel_path = os.path.join(current_path, item)
+                folders.append((rel_path, rel_path))
+                # Рекурсивно получаем вложенные папки
+                folders.extend(get_user_folders(user_folder, rel_path))
+
+    return folders
+
+
+@app.route('/')
 @login_required
 def index():
-    upload_form = UploadFileForm()
-    folder_form = CreateFolderForm()
-    search_form = SearchForm()
+    return browse('')
 
 
+@app.route('/browse/')
+@app.route('/browse/<path:path>')
+@login_required
+def browse(path):
     user_id = current_user.id
-    __User_Folder = app.config['UPLOAD_FOLDER'] + 'user_' + str(user_id)
-    user_id = current_user.id
-    # Обработка загрузки файла
-    if upload_form.validate_on_submit():
-        file = upload_form.file.data
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(__User_Folder, filename))
-        flash('Файл успешно загружен', 'success')
-        return redirect(url_for('index'))
+    base_path = os.path.join(app.config['UPLOAD_FOLDER'], f'user_{user_id}')
+    current_full_path = os.path.join(base_path, path)
 
-    # Обработка создания папки
-    if folder_form.validate_on_submit():
-        folder_name = folder_form.folder_name.data
-        folder_path = os.path.join(__User_Folder, folder_name)
-        os.makedirs(folder_path, exist_ok=True)
-        flash(f'Папка "{folder_name}" создана', 'success')
-        return redirect(url_for('index'))
+    # Create user folder if not exists
+    os.makedirs(base_path, exist_ok=True)
 
-    # Обработка поиска
-    if search_form.validate_on_submit():
-        query = search_form.query.data
-        # Здесь будет логика поиска файлов
-        flash(f'Результаты поиска по запросу: {query}', 'info')
-        return redirect(url_for('index'))
+    # Prepare path parts for breadcrumbs
+    path_parts = []
+    accumulated_path = ''
+    for part in path.split('/'):
+        if part:
+            accumulated_path = os.path.join(accumulated_path, part)
+            path_parts.append({
+                'name': part,
+                'path': accumulated_path
+            })
 
-    # Получаем список файлов для отображения
+    # Get files and folders
     files = []
-    for filename in os.listdir(__User_Folder):
-        path = os.path.join(__User_Folder, filename)
-        if os.path.isfile(path):
-            files.append({
-                'name': filename,
-                'size': os.path.getsize(path),
-                'type': filename.split('.')[-1]
-            })
-        else:
-            files.append({
-                    'name': filename,
-                    'size': os.path.getsize(path),
-                    'type': filename.split('.')[-1]
-            })
+    folders = []
+    if os.path.exists(current_full_path):
+        for item in os.listdir(current_full_path):
+            item_path = os.path.join(current_full_path, item)
+            item_rel_path = os.path.join(path, item) if path else item
+
+            if os.path.isfile(item_path):
+                files.append({
+                    'name': item,
+                    'path': item_rel_path,
+                    'size': os.path.getsize(item_path),
+                    'type': item.split('.')[-1].lower() if '.' in item else 'file'
+                })
+            elif os.path.isdir(item_path):
+                folders.append({
+                    'name': item,
+                    'path': item_rel_path,
+                    'type': 'folder'
+                })
     return render_template('index.html',
-                         upload_form=upload_form,
-                         folder_form=folder_form,
-                         search_form=search_form,
-                         files=files)
+                           upload_form=UploadFileForm(),
+                           folder_form=CreateFolderForm(),
+                           search_form=SearchForm(),
+                           files=files,
+                           folders=folders,
+                           current_path=path,
+                           path_parts=path_parts)
 
 
-@app.route('/download/<filename>')
-def download(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=True)
+def redirect_back(path):
+    if path:
+        return redirect(url_for('browse', path=path))
+    return redirect(url_for('index'))
 
 
-@app.route('/delete/<filename>', methods=['POST'])
-def delete(filename):
+@app.route('/upload', methods=['POST'])
+@login_required
+def upload():
+    user_id = current_user.id
+    current_path = request.form.get('current_path', '')
+    target_dir = os.path.join(app.config['UPLOAD_FOLDER'], f'user_{user_id}', current_path)
+
+    os.makedirs(target_dir, exist_ok=True)
+
+    if 'file' not in request.files:
+        flash('Файл не выбран', 'danger')
+        return redirect_back(current_path)
+
+    file = request.files['file']
+    if file.filename == '':
+        flash('Файл не выбран', 'danger')
+        return redirect_back(current_path)
+
+    if file:
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(target_dir, filename)
+
+        if os.path.exists(file_path):
+            flash('Файл с таким именем уже существует', 'danger')
+        else:
+            try:
+                file.save(file_path)
+                flash('Файл успешно загружен', 'success')
+            except Exception as e:
+                flash(f'Ошибка при загрузке: {str(e)}', 'danger')
+
+    return redirect_back(current_path)
+
+
+@app.route('/create_folder', methods=['POST'])
+@login_required
+def create_folder():
+    user_id = current_user.id
+    current_path = request.form.get('current_path', '')
+    target_dir = os.path.join(app.config['UPLOAD_FOLDER'], f'user_{user_id}', current_path)
+    folder_name = secure_filename(request.form.get('folder_name', ''))
+
+    if not folder_name:
+        flash('Введите имя папки', 'danger')
+        return redirect(url_for('browse', path=current_path))
+
+    new_folder_path = os.path.join(target_dir, folder_name)
+
+    if os.path.exists(new_folder_path):
+        flash('Папка с таким именем уже существует', 'danger')
+    else:
+        try:
+            os.makedirs(new_folder_path)
+            flash('Папка успешно создана', 'success')
+        except Exception as e:
+            flash(f'Ошибка при создании папки: {str(e)}', 'danger')
+
+    if current_path:
+        return redirect(url_for('browse', path=current_path))
+    return redirect(url_for('index'))
+
+
+@app.route('/download/<path:path>')
+@login_required
+def download(path):
+    user_id = current_user.id
+    base_path = os.path.join(app.config['UPLOAD_FOLDER'], f'user_{user_id}')
+    file_path = os.path.join(base_path, path)
+
+    if os.path.isfile(file_path):
+        return send_from_directory(
+            os.path.dirname(file_path),
+            os.path.basename(file_path),
+            as_attachment=True
+        )
+    else:
+        flash('Файл не найден', 'danger')
+        return redirect(url_for('browse', path=os.path.dirname(path)))
+
+
+@app.route('/delete_item/<path:path>', methods=['POST'])
+@login_required
+def delete_item(path):
+    user_id = current_user.id
+    current_path = request.form.get('current_path', '')
+    base_path = os.path.join(app.config['UPLOAD_FOLDER'], f'user_{user_id}')
+    target_path = os.path.join(base_path, path)
+
     try:
-        os.remove(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        flash('Файл удален', 'success')
+        if os.path.isfile(target_path):
+            os.remove(target_path)
+            flash('Файл удален', 'success')
+        elif os.path.isdir(target_path):
+            if not os.listdir(target_path):
+                os.rmdir(target_path)
+                flash('Папка удалена', 'success')
+            else:
+                flash('Папка не пуста. Удалите сначала содержимое.', 'danger')
     except Exception as e:
         flash(f'Ошибка при удалении: {str(e)}', 'danger')
-    return redirect(url_for('index'))
+
+    return redirect_back(current_path)
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -151,7 +265,10 @@ def register():
         db_sess.add(user)
         db_sess.commit()
         user_id = user.id
-        os.mkdir('uploads/user_' + str(user_id))
+        user_fl_nm = 'user_' + str(user_id)
+        __User_Folder = app.config['UPLOAD_FOLDER'] + user_fl_nm
+        if user_fl_nm not in os.listdir(app.config['UPLOAD_FOLDER']):
+            os.mkdir(__User_Folder)
         login_user(user)
         return redirect(url_for('index'))
     return render_template('register.html', title='Регистрация', form=form)
