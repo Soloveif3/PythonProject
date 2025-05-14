@@ -40,7 +40,6 @@ def load_user(user_id):
 
 
 def get_user_folders(user_folder, current_path=''):
-    """Рекурсивно получает все папки пользователя"""
     full_path = os.path.join(user_folder, current_path)
     folders = []
 
@@ -50,7 +49,6 @@ def get_user_folders(user_folder, current_path=''):
             if os.path.isdir(item_path):
                 rel_path = os.path.join(current_path, item)
                 folders.append((rel_path, rel_path))
-                # Рекурсивно получаем вложенные папки
                 folders.extend(get_user_folders(user_folder, rel_path))
 
     return folders
@@ -70,10 +68,8 @@ def browse(path):
     base_path = os.path.join(app.config['UPLOAD_FOLDER'], f'user_{user_id}')
     current_full_path = os.path.join(base_path, path)
 
-    # Create user folder if not exists
     os.makedirs(base_path, exist_ok=True)
 
-    # Prepare path parts for breadcrumbs
     path_parts = []
     accumulated_path = ''
     for part in path.split('/'):
@@ -84,7 +80,6 @@ def browse(path):
                 'path': accumulated_path
             })
 
-    # Get files and folders
     files = []
     folders = []
     if os.path.exists(current_full_path):
@@ -150,7 +145,7 @@ def upload():
                 file.save(file_path)
                 flash('Файл успешно загружен', 'success')
             except Exception as e:
-                flash(f'Ошибка при загрузке: {str(e)}', 'danger')
+                flash(f'Ошибка при загрузке : {str(e)}', 'danger')
 
     return redirect_back(current_path)
 
@@ -177,7 +172,6 @@ def create_folder():
             flash('Папка успешно создана', 'success')
         except Exception as e:
             flash(f'Ошибка при создании папки: {str(e)}', 'danger')
-
     if current_path:
         return redirect(url_for('browse', path=current_path))
     return redirect(url_for('index'))
@@ -223,6 +217,24 @@ def delete_item(path):
         flash(f'Ошибка при удалении: {str(e)}', 'danger')
 
     return redirect_back(current_path)
+
+
+@app.route('/watch_item/<path:path>', methods=['POST'])
+@login_required
+def watch_item(path):
+    user_id = current_user.id
+    current_path = request.form.get('current_path', '')
+    base_path = os.path.join(app.config['UPLOAD_FOLDER'], f'user_{user_id}')
+    target_path = os.path.join(base_path, path)
+
+    try:
+        return redirect_back(current_path)
+    except Exception as e:
+        flash(f'Ошибка при просмотре: {str(e)}', 'danger')
+        return redirect_back(current_path)
+
+
+
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -295,8 +307,9 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+
 if __name__ == '__main__':
-    from waitress import serve
+    # from waitress import serve
     db_session.global_init("db/blogs.db")
-    app.run(port=8080, host='192.168.31.155')
+    app.run(port=5080, host='192.168.31.155')
     # serve(app, host="192.168.31.155", port=8080)
