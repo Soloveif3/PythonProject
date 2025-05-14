@@ -636,13 +636,11 @@
 </div>
 
 <script>
-    // Update file name when selected
     document.getElementById('file-upload').addEventListener('change', function(e) {
         const fileName = e.target.files[0] ? e.target.files[0].name : 'Выберите файл';
         document.getElementById('file-name').textContent = fileName;
     });
 
-    // Add current path to all forms
     document.querySelectorAll('form').forEach(form => {
         const currentPath = "{{ current_path }}";
         if (currentPath && !form.querySelector('input[name="current_path"]')) {
@@ -654,7 +652,6 @@
         }
     });
 
-    // Confirm deletion
     document.querySelectorAll('.delete-form').forEach(form => {
         form.addEventListener('submit', function(e) {
             if (!confirm('Вы уверены, что хотите удалить этот элемент?')) {
