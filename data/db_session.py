@@ -16,6 +16,7 @@ def global_init(db_file):
     if not db_file or not db_file.strip():
         raise Exception("Необходимо указать файл базы данных.")
 
+    db_file = 'C:\\Users\\Администратор\\PycharmProjects\\WEBproject\\' + db_file
     conn_str = f'sqlite:///{db_file.strip()}?check_same_thread=False'
     print(f"Подключение к базе данных по адресу {conn_str}")
 
@@ -29,4 +30,4 @@ def global_init(db_file):
 
 def create_session() -> Session:
     global __factory
-    return __factory()
+    return __factory

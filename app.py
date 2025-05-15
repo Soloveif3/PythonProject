@@ -264,6 +264,7 @@ def register():
                                  form=form,
                                  message="Пароли не совпадают")
         db_sess = db_session.create_session()
+        print()
         if db_sess.query(User).filter(User.email == form.email.data).first():
             return render_template('register.html', title='Регистрация',
                                  form=form,
@@ -294,7 +295,6 @@ def login():
         user = db_sess.query(User).filter(User.email == form.email.data).first()
         if user and user.check_password(form.password.data):
             login_user(user, remember=form.remember_me.data)
-            # next_page = request.args.get('next')
             return redirect(url_for('index'))
         return render_template('login.html',
                              message="Неправильный логин или пароль",
@@ -309,7 +309,5 @@ def logout():
 
 
 if __name__ == '__main__':
-    # from waitress import serve
     db_session.global_init("db/blogs.db")
-    app.run(port=5080, host='192.168.31.155')
-    # serve(app, host="192.168.31.155", port=8080)
+    app.run(debug=True)
